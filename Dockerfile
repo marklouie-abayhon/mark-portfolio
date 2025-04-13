@@ -1,41 +1,42 @@
-FROM php:8.1-fpm
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    nginx \
-    curl \
-    git \
-    unzip \
-    libzip-dev \
-    zip \
-    supervisor \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    && docker-php-ext-install pdo_mysql mbstring zip exif pcntl
-
-# Install Composer
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Use official PHP image with necessary extensions
+FROM php:8.2-fpm
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy Laravel files
-COPY . .
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zip \
+    unzip \
+    nginx \
+    supervisor \
+    libpng-dev \
+    libjpeg-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libmcrypt-dev \
+    libpq-dev \
+    libfreetype6-dev \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl bcmath
 
-# Install dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Permissions
+# Copy existing application files
+COPY . /var/www
+
+# Set permissions
 RUN chown -R www-data:www-data /var/www \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+    && chmod -R 755 /var/www
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/sites-available/default
+# NGINX config
+COPY ./nginx/default.conf /etc/nginx/sites-available/default
 
 # Supervisor config
-RUN mkdir -p /var/log/supervisor
+RUN mkdir -p /etc/supervisor
 RUN echo "[supervisord]
 nodaemon=true
 
@@ -43,8 +44,11 @@ nodaemon=true
 command=/usr/local/sbin/php-fpm
 
 [program:nginx]
-command=/usr/sbin/nginx -g 'daemon off;'" > /etc/supervisord.conf
+command=/usr/sbin/nginx -g 'daemon off;'
+" > /etc/supervisor/supervisord.conf
 
+# Expose HTTP port
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# Run supervisor to manage php-fpm and nginx
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
