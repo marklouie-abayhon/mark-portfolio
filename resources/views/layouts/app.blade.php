@@ -8,8 +8,10 @@
     <meta name="author" content="Mark Louie E. Abayhon" />
     <title>@yield('title', 'Mark Louie E. Abayhon - IT Professional')</title>
 
-    <!-- Vite Assets -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link href="{{ mix('css/app.css') }}" rel="stylesheet">
+    <script src="{{ mix('js/app.js') }}" defer></script>
+
+
 
     <!-- Favicon, Fonts, Icons, etc -->
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/favicon.ico') }}" />
