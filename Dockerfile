@@ -1,38 +1,49 @@
-# Use the official PHP image with Composer
-FROM php:8.2-cli
+# Step 1: Use the official PHP-FPM image
+FROM php:8.2-fpm
 
-# Install system dependencies and PHP extensions
+# Step 2: Set working directory
+WORKDIR /var/www
+
+# Step 3: Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    curl \
-    zip \
+    build-essential \
     libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    && docker-php-ext-install pdo mbstring exif pcntl bcmath zip
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    locales \
+    zip \
+    jpegoptim optipng pngquant gifsicle \
+    vim \
+    unzip \
+    git \
+    curl \
+    nodejs \
+    npm
 
-# Install Composer
+# Step 4: Install PHP extensions (necessary for Laravel)
+RUN docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl bcmath gd
+
+# Step 5: Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set the working directory
-WORKDIR /app
+# Step 6: Copy application files
+COPY . /var/www
 
-# Copy the entire Laravel project into the container
-COPY . .
+# Step 7: Install PHP dependencies
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Install PHP dependencies with Composer
-RUN composer install --no-dev --optimize-autoloader
+# Step 8: Install Node.js dependencies
+RUN npm install
 
-# Clear and cache Laravel config (optional)
-RUN php artisan config:clear
+# Step 9: Build the frontend assets
+RUN npm run dev
 
-# Set permissions for storage and cache
-RUN chmod -R 777 storage bootstrap/cache
+# Step 10: Set permissions for storage and cache
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage
 
-# Expose the port Laravel will run on
-EXPOSE 10000
+# Step 11: Expose port 8000 to access the Laravel app
+EXPOSE 8000
 
-# Start Laravel's built-in web server
-CMD php artisan serve --host=0.0.0.0 --port=10000
+# Step 12: Set the entry point for the Laravel app
+CMD php artisan serve --host=0.0.0.0 --port=8000
