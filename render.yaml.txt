@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: laravel-portfolio
+    env: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        value: base64:k+RVYDWXrxjrWtbrYJp54cWXm3iH5FSeJRI4/Vmb7s4=
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        value: https://your-app-name.onrender.com
+      - key: DB_CONNECTION
+        value: sqlite
