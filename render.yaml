@@ -1,13 +1,11 @@
 services:
   - type: web
-    name: mark-portfolio
+    name: laravel-portfolio
     env: docker
     plan: free
-    dockerfilePath: Dockerfile
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_KEY
-        generateValue: true
-      - key: PORT
-        value: 80
+        value: base64:k+RVYDWXrxjrWtbrYJp54cWXm3iH5FSeJRI4/Vmb7s4=
