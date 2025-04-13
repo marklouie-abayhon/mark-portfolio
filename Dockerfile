@@ -36,16 +36,8 @@ RUN chown -R www-data:www-data /var/www \
 COPY ./nginx/default.conf /etc/nginx/sites-available/default
 
 # Supervisor config
-RUN mkdir -p /etc/supervisor
-RUN echo "[supervisord]
-nodaemon=true
-
-[program:php-fpm]
-command=/usr/local/sbin/php-fpm
-
-[program:nginx]
-command=/usr/sbin/nginx -g 'daemon off;'
-" > /etc/supervisor/supervisord.conf
+RUN mkdir -p /etc/supervisor \
+    && echo "[supervisord]\nnodaemon=true\n\n[program:php-fpm]\ncommand=/usr/local/sbin/php-fpm\n\n[program:nginx]\ncommand=/usr/sbin/nginx -g 'daemon off;'" > /etc/supervisor/supervisord.conf
 
 # Expose HTTP port
 EXPOSE 80
