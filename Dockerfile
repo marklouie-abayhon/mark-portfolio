@@ -1,33 +1,44 @@
-FROM composer:2.6 AS vendor
+# Step 1: Use Node.js image
+FROM node:16 AS frontend
 
-WORKDIR /app
+# Set the working directory for frontend assets
+WORKDIR /var/www/frontend
 
-COPY composer.json composer.lock ./
-RUN composer install --no-scripts --no-autoloader
-
+# Copy the application files to the container
 COPY . ./
-RUN composer dump-autoload --optimize
 
-# Node build for Vite
-FROM node:18 AS frontend
-
-WORKDIR /app
-
-COPY . ./
+# Install npm dependencies
 RUN npm install
-RUN npm run build
 
-# Final Laravel container
-FROM php:8.2-cli
+# Run build to generate production assets
+RUN npm run build  # This command is mapped to npm run production or npm run prod in package.json
 
-WORKDIR /var/www/html
+# Step 2: Use PHP with Laravel for the backend
+FROM php:8.0-fpm AS backend
 
-RUN apt-get update && apt-get install -y unzip libzip-dev sqlite3 libsqlite3-dev git
-RUN docker-php-ext-install pdo pdo_sqlite zip
+# Set the working directory for the backend
+WORKDIR /var/www/backend
 
-COPY --from=vendor /app /var/www/html
-COPY --from=frontend /app/public/build /var/www/html/public/build
+# Copy the backend files to the container
+COPY . ./
 
-EXPOSE 10000
+# Install the PHP extensions required for Laravel
+RUN docker-php-ext-install pdo pdo_mysql
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=10000"]
+# Step 3: Final image, serve both frontend and backend
+FROM php:8.0-apache
+
+# Set the working directory in the final image
+WORKDIR /var/www
+
+# Copy the frontend build files to the Apache web directory
+COPY --from=frontend /var/www/frontend/public /var/www/html
+
+# Copy the backend files
+COPY --from=backend /var/www/backend /var/www/html
+
+# Expose the required port
+EXPOSE 80
+
+# Start Apache server
+CMD ["apache2-foreground"]
