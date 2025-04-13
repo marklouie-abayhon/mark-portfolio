@@ -1,26 +1,33 @@
-# Use an official PHP runtime as a parent image
-FROM php:8.1-fpm
+FROM php:8.2-fpm
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev zip git
-
-# Install PHP extensions
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd pdo pdo_mysql
-
-# Set the working directory in the container
+# Set working directory
 WORKDIR /var/www
 
-# Copy the current directory contents into the container
-COPY . .
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zip \
+    unzip \
+    libzip-dev \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libpq-dev \
+    && docker-php-ext-install pdo pdo_mysql zip exif pcntl
 
 # Install Composer
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
 
-# Install Laravel dependencies
-RUN composer install
+# Copy existing application directory
+COPY . /var/www
 
-# Expose port 9000 to the outside world
-EXPOSE 9000
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-CMD ["php-fpm"]
+# Set file permissions
+RUN chown -R www-data:www-data /var/www && chmod -R 755 /var/www
+
+# Expose port 8000 and start PHP-FPM
+EXPOSE 8000
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
