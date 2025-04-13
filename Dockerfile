@@ -29,15 +29,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . /var/www
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www /var/run/php
-RUN chmod -R 755 /var/www
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www
 
 # NGINX config
 COPY ./nginx/default.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Supervisor config
-RUN mkdir -p /etc/supervisor
-RUN echo "[supervisord]
+RUN mkdir -p /etc/supervisor && \
+    cat > /etc/supervisor/supervisord.conf <<EOF
+[supervisord]
 nodaemon=true
 user=www-data
 
@@ -56,10 +58,10 @@ autostart=true
 autorestart=true
 stderr_logfile=/var/log/nginx.err.log
 stdout_logfile=/var/log/nginx.out.log
-" > /etc/supervisor/supervisord.conf
+EOF
 
 # Expose HTTP port
 EXPOSE 80
 
-# Run supervisor to manage php-fpm and nginx
+# Run Supervisor to manage services
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
