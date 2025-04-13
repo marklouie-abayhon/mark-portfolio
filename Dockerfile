@@ -1,35 +1,50 @@
-FROM php:8.2-fpm
+FROM php:8.1-fpm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    build-essential \
     nginx \
-    supervisor \
-    unzip \
     curl \
     git \
+    unzip \
     libzip-dev \
     zip \
-    && docker-php-ext-install pdo pdo_mysql zip
+    supervisor \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    && docker-php-ext-install pdo_mysql mbstring zip exif pcntl
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
 
-# Copy application source
+# Copy Laravel files
 COPY . .
 
-# Install Laravel dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Copy custom Nginx and Supervisor configurations
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY www.conf /etc/php/8.2/fpm/pool.d/www.conf  # Adjust PHP version if needed
-COPY supervisord.conf /etc/supervisor/supervisord.conf
+# Permissions
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# Expose ports for Nginx and PHP-FPM
-EXPOSE 80 9000
+# Copy nginx config
+COPY nginx.conf /etc/nginx/sites-available/default
 
-# Start Supervisor to manage Nginx and PHP-FPM
-CMD ["/usr/bin/supervisord"]
+# Supervisor config
+RUN mkdir -p /var/log/supervisor
+RUN echo "[supervisord]
+nodaemon=true
+
+[program:php-fpm]
+command=/usr/local/sbin/php-fpm
+
+[program:nginx]
+command=/usr/sbin/nginx -g 'daemon off;'" > /etc/supervisord.conf
+
+EXPOSE 80
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
