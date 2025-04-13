@@ -1,78 +1,33 @@
-<<<<<<< HEAD
-HEAD
-# Use an official PHP runtime as a parent image
-FROM php:8.1-fpm
-=======
-FROM php:8.2-fpm
->>>>>>> 59e1cfed72820109548a18b55278d9f22b177c53
+FROM composer:2.6 AS vendor
 
-# Set working directory
-WORKDIR /var/www
+WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    zip \
-    unzip \
-    libzip-dev \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libpq-dev \
-    && docker-php-ext-install pdo pdo_mysql zip exif pcntl
+COPY composer.json composer.lock ./
+RUN composer install --no-scripts --no-autoloader
 
-# Install Composer
-COPY --from=composer:2.5 /usr/bin/composer /usr/bin/composer
+COPY . ./
+RUN composer dump-autoload --optimize
 
-# Copy existing application directory
-COPY . /var/www
+# Node build for Vite
+FROM node:18 AS frontend
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+WORKDIR /app
 
-<<<<<<< HEAD
-CMD ["php-fpm"]
+COPY . ./
+RUN npm install
+RUN npm run build
 
-# Step 1: Use an official PHP image with FPM (FastCGI Process Manager)
-FROM php:8.0-fpm
+# Final Laravel container
+FROM php:8.2-cli
 
-# Step 2: Set the working directory in the container
-WORKDIR /var/www
+WORKDIR /var/www/html
 
-# Step 3: Install system dependencies required for Laravel and PHP extensions
-RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    zip \
-    git \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd pdo pdo_mysql
+RUN apt-get update && apt-get install -y unzip libzip-dev sqlite3 libsqlite3-dev git
+RUN docker-php-ext-install pdo pdo_sqlite zip
 
-# Step 4: Install Composer (a PHP package manager) inside the container
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=vendor /app /var/www/html
+COPY --from=frontend /app/public/build /var/www/html/public/build
 
-# Step 5: Copy the application files into the container
-COPY . .
+EXPOSE 10000
 
-# Step 6: Install PHP dependencies using Composer
-RUN composer install --no-interaction --optimize-autoloader
-
-# Step 7: Set the permissions for storage and cache directories
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-
-# Step 8: Expose port 8000 to access the Laravel development server
-EXPOSE 8000
-
-# Step 9: Start Laravel's development server (accessible from any IP address)
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
- 7adbbcc2e648f4632419e2a8423392dcb0a5688c
-=======
-# Set file permissions
-RUN chown -R www-data:www-data /var/www && chmod -R 755 /var/www
-
-# Expose port 8000 and start PHP-FPM
-EXPOSE 8000
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
->>>>>>> 59e1cfed72820109548a18b55278d9f22b177c53
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=10000"]
