@@ -1,30 +1,16 @@
 services:
-<<<<<<< HEAD
-  - type: webHEAD
-    name: portfolio
+  - type: web
+    name: laravel-app
     env: docker
-    plan: free
-    buildCommand: docker build -t portfolio .
-    startCommand: docker run -p 80:80 portfolio
-    dockerFilePath: Dockerfile
-
-    name: laravel-portfolio
-    env: docker
-    plan: free
+    repo: https://github.com/YOUR-USERNAME/mark-portfolio
+    branch: main
     dockerfilePath: ./Dockerfile
+    buildCommand: 'composer install && npm install && npm run build'
+    startCommand: 'php artisan serve --host=0.0.0.0 --port=10000'
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_KEY
-        value: base64:k+RVYDWXrxjrWtbrYJp54cWXm3iH5FSeJRI4/Vmb7s4=7adbbcc2e648f4632419e2a8423392dcb0a5688cz
-=======
-  - type: web
-    name: laravel-portfolio
-    env: docker
-    plan: free
-    branch: main
-    repo: https://github.com/marklouie-abayhon/mark-portfolio
-    dockerContext: .
-    dockerfilePath: Dockerfile
-    autoDeploy: true
->>>>>>> 59e1cfed72820109548a18b55278d9f22b177c53
+        generateValue: true
+      - key: DB_CONNECTION
+        value: sqlite
