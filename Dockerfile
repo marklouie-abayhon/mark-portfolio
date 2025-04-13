@@ -1,67 +1,38 @@
-# Use official PHP image with necessary extensions
-FROM php:8.2-fpm
+# Use the official PHP image with Composer
+FROM php:8.2-cli
 
-# Set working directory
-WORKDIR /var/www
-
-# Install system dependencies
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
+    unzip \
     curl \
     zip \
-    unzip \
-    nginx \
-    supervisor \
     libpng-dev \
-    libjpeg-dev \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
-    libmcrypt-dev \
-    libpq-dev \
-    libfreetype6-dev \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl bcmath
+    && docker-php-ext-install pdo mbstring exif pcntl bcmath zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy existing application files
-COPY . /var/www
+# Set the working directory
+WORKDIR /app
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www
+# Copy the entire Laravel project into the container
+COPY . .
 
-# NGINX config
-COPY ./nginx/default.conf /etc/nginx/sites-available/default
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+# Install PHP dependencies with Composer
+RUN composer install --no-dev --optimize-autoloader
 
-# Supervisor config
-RUN mkdir -p /etc/supervisor && \
-    cat > /etc/supervisor/supervisord.conf <<EOF
-[supervisord]
-nodaemon=true
-user=www-data
+# Clear and cache Laravel config (optional)
+RUN php artisan config:clear
 
-[program:php-fpm]
-command=/usr/local/sbin/php-fpm
-user=www-data
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/php-fpm.err.log
-stdout_logfile=/var/log/php-fpm.out.log
+# Set permissions for storage and cache
+RUN chmod -R 777 storage bootstrap/cache
 
-[program:nginx]
-command=/usr/sbin/nginx -g 'daemon off;'
-user=www-data
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/nginx.err.log
-stdout_logfile=/var/log/nginx.out.log
-EOF
+# Expose the port Laravel will run on
+EXPOSE 10000
 
-# Expose HTTP port
-EXPOSE 80
-
-# Run Supervisor to manage services
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+# Start Laravel's built-in web server
+CMD php artisan serve --host=0.0.0.0 --port=10000
