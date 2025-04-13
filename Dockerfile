@@ -1,52 +1,33 @@
-# Step 1: Use the official PHP-FPM image
-FROM php:8.2-fpm
+# Step 1: Use an official PHP image with FPM (FastCGI Process Manager)
+FROM php:8.0-fpm
 
-# Step 2: Set working directory
+# Step 2: Set the working directory in the container
 WORKDIR /var/www
 
-# Step 3: Install system dependencies
+# Step 3: Install system dependencies required for Laravel and PHP extensions
 RUN apt-get update && apt-get install -y \
-    build-essential \
     libpng-dev \
-    libjpeg62-turbo-dev \
+    libjpeg-dev \
     libfreetype6-dev \
-    libonig-dev \
-    libicu-dev \
-    libxml2-dev \
     zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
-    unzip \
     git \
-    curl \
-    nodejs \
-    npm
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd pdo pdo_mysql
 
-# Step 4: Install PHP extensions (necessary for Laravel)
-RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/freetype2 --with-jpeg-dir=/usr/include \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl bcmath gd
-
-# Step 5: Install Composer
+# Step 4: Install Composer (a PHP package manager) inside the container
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Step 6: Copy application files
-COPY . /var/www
+# Step 5: Copy the application files into the container
+COPY . .
 
-# Step 7: Install PHP dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# Step 6: Install PHP dependencies using Composer
+RUN composer install --no-interaction --optimize-autoloader
 
-# Step 8: Install Node.js dependencies
-RUN npm install
+# Step 7: Set the permissions for storage and cache directories
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# Step 9: Build the frontend assets
-RUN npm run dev
-
-# Step 10: Set permissions for storage and cache
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www/storage
-
-# Step 11: Expose port 8000 to access the Laravel app
+# Step 8: Expose port 8000 to access the Laravel development server
 EXPOSE 8000
 
-# Step 12: Set the entry point for the Laravel app
-CMD php artisan serve --host=0.0.0.0 --port=8000
+# Step 9: Start Laravel's development server (accessible from any IP address)
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
