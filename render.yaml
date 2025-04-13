@@ -1,8 +1,18 @@
 services:
-  - type: web
+  - type: webHEAD
     name: portfolio
     env: docker
     plan: free
     buildCommand: docker build -t portfolio .
     startCommand: docker run -p 80:80 portfolio
     dockerFilePath: Dockerfile
+
+    name: laravel-portfolio
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        value: base64:k+RVYDWXrxjrWtbrYJp54cWXm3iH5FSeJRI4/Vmb7s4=7adbbcc2e648f4632419e2a8423392dcb0a5688cz

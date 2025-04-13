@@ -1,15 +1,16 @@
 import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
 
 export default defineConfig({
-  root: 'resources', // The folder where your assets are
+  plugins: [
+    laravel([
+      'resources/css/app.css',
+      'resources/js/app.js',
+    ]),
+  ],
   build: {
-    outDir: '../public/build', // Output location for the build files
+    outDir: 'public/build',
     emptyOutDir: true,
-    manifest: true, // Generates a manifest file
-  },
-  server: {
-    proxy: {
-      '/': 'http://localhost', // This ensures the correct URL when running in development
-    },
+    manifest: true,
   },
 });
