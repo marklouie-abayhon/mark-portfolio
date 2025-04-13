@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
-    locales \
+    libonig-dev \
+    libicu-dev \
+    libxml2-dev \
     zip \
     jpegoptim optipng pngquant gifsicle \
     vim \
@@ -18,13 +20,10 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     nodejs \
-    npm \
-    libonig-dev \
-    libicu-dev \
-    libxml2-dev
+    npm
 
 # Step 4: Install PHP extensions (necessary for Laravel)
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/freetype2 --with-jpeg-dir=/usr/include \
     && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl bcmath gd
 
 # Step 5: Install Composer
