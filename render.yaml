@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: portfolio
+    env: docker
+    plan: free
+    buildCommand: docker build -t portfolio .
+    startCommand: docker run -p 80:80 portfolio
+    dockerFilePath: Dockerfile
