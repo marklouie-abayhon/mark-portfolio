@@ -29,15 +29,34 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . /var/www
 
 # Set permissions
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 755 /var/www
+RUN chown -R www-data:www-data /var/www /var/run/php
+RUN chmod -R 755 /var/www
 
 # NGINX config
 COPY ./nginx/default.conf /etc/nginx/sites-available/default
 
 # Supervisor config
-RUN mkdir -p /etc/supervisor \
-    && echo "[supervisord]\nnodaemon=true\n\n[program:php-fpm]\ncommand=/usr/local/sbin/php-fpm\n\n[program:nginx]\ncommand=/usr/sbin/nginx -g 'daemon off;'" > /etc/supervisor/supervisord.conf
+RUN mkdir -p /etc/supervisor
+RUN echo "[supervisord]
+nodaemon=true
+user=www-data
+
+[program:php-fpm]
+command=/usr/local/sbin/php-fpm
+user=www-data
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/php-fpm.err.log
+stdout_logfile=/var/log/php-fpm.out.log
+
+[program:nginx]
+command=/usr/sbin/nginx -g 'daemon off;'
+user=www-data
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/nginx.err.log
+stdout_logfile=/var/log/nginx.out.log
+" > /etc/supervisor/supervisord.conf
 
 # Expose HTTP port
 EXPOSE 80
